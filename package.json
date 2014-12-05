@@ -1,0 +1,36 @@
+{
+  "name": "docpad-plugin-copy",
+  "version": "2.0.0",
+  "description": "Adds optin to have multidomain setup in DocPad.",
+  "author": "Almero Digital Marketing (http://almero.com)",
+  "keywords": [
+    "docpad",
+    "docpad-plugin",
+    "raw",
+    "copy"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/almero-digital-marketing/docpad-plugin-domains"
+  },
+  "engines": {
+    "node": ">=0.4",
+    "docpad": ">=6.66 <7"
+  },
+  "dependencies": {
+    "fs-extra": "^0.12.0",
+    "string": "^2.2.0"
+  },
+  "devDependencies": {
+    "coffee-script": "~1.4.0"
+  },
+  "main": "./out/domains.plugin.js",
+  "scripts": {
+    "prepublish": "coffee -o out -c src"
+  },
+  "bugs": {
+    "url": "https://github.com/almero-digital-marketing/docpad-plugin-domains/issues"
+  },
+  "homepage": "https://github.com/almero-digital-marketing/docpad-plugin-domains",
+  "license": "ISC"
+}
