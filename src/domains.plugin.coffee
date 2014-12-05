@@ -24,29 +24,30 @@ module.exports = (BasePlugin) ->
                     domainName = document.domainName
                     domainName ?= document.get('domainName') if document.get?
                     domainName ?= 'default'
-                domainDocument = docpad.domainMap[domainName][rel];
                 
-                if domainDocument?
-                    domainDocument = domainDocument.toJSON()
-                    if isSameDomain
-                        if document.get('isPaged') != true and document.get('standalone') != true and document.get('rel')?
-                            document.set('referencesOthers', true)
-                        domainDocument.rdp = document.get('ptr') + domainDocument.absoluteDomainPath
-                    else
-                        domainDocument.rdp = 'http://' + domainName + domainDocument.absoluteDomainPath
-                else 
-                    isFoundIn = (term, array) -> array.indexOf(term) isnt -1
-                    if document.get('domain')?
-                        notFoundDocument = document.get('domain').name + rel
-                        if not isFoundIn notFoundDocument, notFound
-                            notFound.push(notFoundDocument)
-                            docpad.log('warn', 'Domain document not found /' + domainName + rel, document.get('relativeOutPath'))
-                    else
-                        notFoundDocument = rel
-                        if not isFoundIn notFoundDocument, notFound
-                            notFound.push(notFoundDocument)
-                        docpad.log('warn', 'Domain document not found ' + rel, document.get('relativeOutPath'))
-                domainDocument
+                if docpad.domainMap[domainName]?
+                    domainDocument = docpad.domainMap[domainName][rel]
+                    if domainDocument?
+                        domainDocument = domainDocument.toJSON()
+                        if isSameDomain
+                            if document.get('isPaged') != true and document.get('standalone') != true and document.get('rel')?
+                                document.set('referencesOthers', true)
+                            domainDocument.rdp = document.get('ptr') + domainDocument.absoluteDomainPath
+                        else
+                            domainDocument.rdp = 'http://' + domainName + domainDocument.absoluteDomainPath
+                    else 
+                        isFoundIn = (term, array) -> array.indexOf(term) isnt -1
+                        if document.get('domain')?
+                            notFoundDocument = document.get('domain').name + rel
+                            if not isFoundIn notFoundDocument, notFound
+                                notFound.push(notFoundDocument)
+                                docpad.log('warn', 'Domain document not found /' + domainName + rel, document.get('relativeOutPath'))
+                        else
+                            notFoundDocument = rel
+                            if not isFoundIn notFoundDocument, notFound
+                                notFound.push(notFoundDocument)
+                            docpad.log('warn', 'Domain document not found ' + rel, document.get('relativeOutPath'))
+                return domainDocument
 
             templateData.df = (absolutePath, absoluteDomainPath, domainName) ->
                 if not domainName?
@@ -56,9 +57,8 @@ module.exports = (BasePlugin) ->
                     if not absoluteDomainPath?
                         absoluteDomainPath = absolutePath
 
-                if absolutePath
-                    config.files.push { 'absolutePath': absolutePath, 'absoluteDomainPath': absoluteDomainPath, 'domainName': domainName }
-                    return absoluteDomainPath
+                config.files.push { 'absolutePath': absolutePath, 'absoluteDomainPath': absoluteDomainPath, 'domainName': domainName }
+                return absoluteDomainPath
 
             templateData.getDomainCollection = (collection, document, domainName) ->
                 document ?= @getDocument()
@@ -67,11 +67,14 @@ module.exports = (BasePlugin) ->
                     domainName ?= document.get('domainName') if document.get?
                     domainName ?= 'default'
                 
-                if domainName != 'default'
-                    docpad.getCollection(collection).findAllLive({'domainName': domainName})
+                if docpad.domainMap[domainName]?
+                    if domainName != 'default'
+                        docpad.getCollection(collection).findAllLive({'domainName': domainName})
+                    else
+                        docpad.log 'warn', 'Get collection domain is missing', collection
+                        docpad.getCollection(collection)
                 else
-                    docpad.log 'warn', 'Get collection domain is missing', collection
-                    docpad.getCollection(collection)       
+                    return undefined     
 
             templateData.getAlternates = (document) ->
                 document ?= @getDocument()
@@ -120,8 +123,6 @@ module.exports = (BasePlugin) ->
             domainNames = config.domains.map (domain) -> domain.name
             docpad.domainMap = {}
             docpad.domainMap['default'] = {}
-            for domainName in domainNames
-                docpad.domainMap[domainName] = {}
 
             path = require('path')
             S = require('string')
@@ -146,7 +147,7 @@ module.exports = (BasePlugin) ->
                 if documentDomain?
                     absoluteDomainPath = absoluteDomainPath.replace(documentDomain.name + '/','')
                 document.set('absoluteDomainPath', '/' + absoluteDomainPath)
-                if not document.get('domain')? and not document.get('replicate')?
+                if not document.get('domain')?
                     document.set('replicate', true)
 
                 rel = document.get('rel')
@@ -164,6 +165,7 @@ module.exports = (BasePlugin) ->
                     if not document.get('isPagedAuto')
                         domainName = document.get('domainName')
                         domainName ?= 'default'
+                        docpad.domainMap[domainName] ?= {}
                         docpad.domainMap[domainName][rel] = document
 
             files.forEach (file) ->
@@ -176,12 +178,17 @@ module.exports = (BasePlugin) ->
                     
             next?()
 
-
         generateAfterPriority: 400
         generateAfter: (opts, next) ->
             docpad = @docpad
             config = @config
+            config.firstRun ?= true
+            {collection,templateData} = opts
             domainNames = config.domains.map (domain) -> domain.name
+
+            console.log 'Domain replication'
+            collection.forEach (item)->
+                console.log item.get('relativeOutPath')
             
             fs = require('fs-extra')
             path = require('path')
@@ -198,17 +205,17 @@ module.exports = (BasePlugin) ->
                         sourceStats = fs.statSync(referenceFile)                        
                     destinationStats = fs.statSync(destinationFile)
 
-                    if destinationStats.mtime < sourceStats.mtime or destinationStats.size != sourceSize
+                    if (not config.firstRun? and collection.findOne(relativeOutPath: absolutePath)?) or destinationStats.mtime < sourceStats.mtime or destinationStats.size != sourceSize
                         fs.removeSync(destinationFile)
                         copy = true
                 catch err
                     copy = true
 
                 if copy
-                    docpad.log 'info', 'Replicating ' + sourceFile + ' tо ' + path.join(domainName, absoluteDomainPath)
+                    docpad.log 'info', 'Replicating ' + path.join(domainName, absoluteDomainPath)
                     try
                         if fs.existsSync sourceFile
-                            fs.copySync(sourceFile, destinationFile)
+                            fs.copySync(sourceFile,destinationFile)
                         else
                             docpad.log 'error', 'Error replicating ' + sourceFile + ' to ' + destinationFile
                     catch err
@@ -218,7 +225,7 @@ module.exports = (BasePlugin) ->
             copyFileToDomains = (globalFile) ->
                 relativeOutPath = globalFile.get('relativeOutPath')
                 if not globalFile.get('domainName')? and not globalFile.get('notInDomain')
-                    for domainName in domainNames
+                    for domainName in domainNames when docpad.domainMap[domainName]?
                         copyFileToDomain(relativeOutPath, relativeOutPath, domainName, globalFile.get('fullPath'))
 
             documents = docpad.getCollection('documents')
@@ -233,5 +240,11 @@ module.exports = (BasePlugin) ->
             for file in config.files
                 copyFileToDomain(file.absolutePath, file.absoluteDomainPath, file.domainName)
             config.files = []
+
+            config.firstRun = false
             
+            next?()
+
+        writeAfter: (opts, next) ->
+            console.log 'Domain write after'
             next?()
