@@ -1,5 +1,5 @@
 {
-  "name": "docpad-plugin-copy",
+  "name": "docpad-plugin-domains",
   "version": "2.0.0",
   "description": "Adds optin to have multidomain setup in DocPad.",
   "author": "Almero Digital Marketing (http://almero.com)",
@@ -7,7 +7,7 @@
     "docpad",
     "docpad-plugin",
     "raw",
-    "copy"
+    "domains"
   ],
   "repository": {
     "type": "git",
