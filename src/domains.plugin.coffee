@@ -86,6 +86,12 @@ module.exports = (BasePlugin) ->
                     alternates = []
                 alternates
 
+            templateData.getCanonicalUrl = (document) ->
+                document ?= @getDocument()
+                if not document.get('domain').canonical?
+                    document = dd document.get('rel'), document, document.get('domain').canonical
+                return '/' + document.get('url')
+
             templateData.getDomainUrl = (document) ->
                 document ?= @getDocument()
                 return '/' + document.get('url')
