@@ -88,8 +88,14 @@ module.exports = (BasePlugin) ->
 
             templateData.getCanonicalUrl = (document) ->
                 document ?= @getDocument()
-                if not document.get('domain').canonical?
-                    document = dd document.get('rel'), document, document.get('domain').canonical
+                domain = document.domain
+                domain ?= document.get('domain') if document.get?
+                rel = document.rel
+                rel ?= document.get('rel') if document.get?
+                if domain.canonical?
+                    canonicalDocument = templateData.dd rel, document, domain.canonical
+                    if canonicalDocument?
+                        document = canonicalDocument
                 return '/' + document.get('url')
 
             templateData.getDomainUrl = (document) ->
