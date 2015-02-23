@@ -37,11 +37,11 @@ module.exports = (BasePlugin) ->
                             domainDocument.rdp = 'http://' + domainName + domainDocument.absoluteDomainPath
                     else 
                         isFoundIn = (term, array) -> array.indexOf(term) isnt -1
-                        if document.get('domain')?
-                            notFoundDocument = document.get('domain').name + rel
+                        if domainName?
+                            notFoundDocument = domainName + rel
                             if not isFoundIn notFoundDocument, notFound
                                 notFound.push(notFoundDocument)
-                                docpad.log('warn', 'Domain document not found /' + domainName + rel, document.get('relativeOutPath'))
+                                docpad.log('warn', 'Domain document not found /' + notFoundDocument)
                         else
                             notFoundDocument = rel
                             if not isFoundIn notFoundDocument, notFound
