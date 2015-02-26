@@ -30,8 +30,8 @@ module.exports = (BasePlugin) ->
                     if domainDocument?
                         domainDocument = domainDocument.toJSON()
                         if isSameDomain
-                            if document.get('isPaged') != true and document.get('standalone') != true and document.get('rel')?
-                                document.set('referencesOthers', true)
+                            # if document.get('isPaged') != true and document.get('standalone') != true and document.get('rel')?
+                            #     document.set('referencesOthers', true)
                             domainDocument.rdp = document.get('ptr') + domainDocument.absoluteDomainPath
                         else
                             domainDocument.rdp = 'http://' + domainName + domainDocument.absoluteDomainPath
